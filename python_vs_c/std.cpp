@@ -1,13 +1,9 @@
-#include <Python/Python.h>
+#include <Python.h>
 #include <vector>
 #include <numeric>
 #include <iterator>
 
 #include <Python.h>
-
-extern "C" {
-    void initstd(void);
-}
 
 static double standardDeviation(std::vector<double> v)
 {
@@ -32,28 +28,44 @@ static PyObject * std_standard_dev(PyObject *self, PyObject* args)
         list[i] = PyFloat_AS_DOUBLE(PyList_GET_ITEM(input, i));
     }
 
-	return PyFloat_FromDouble(standardDeviation(list));
+    return PyFloat_FromDouble(standardDeviation(list));
 }
 
 static PyMethodDef std_methods[] = {
-	{"standard_dev", std_standard_dev,	METH_VARARGS,
-	 "Return the standard deviation of a list."},
-	{NULL,		NULL}		/* sentinel */
+    {"standard_dev", std_standard_dev,	METH_VARARGS,
+        "Return the standard deviation of a list."},
+    {NULL,		NULL}		/* sentinel */
 };
 
-extern void initstd(void)
+static struct PyModuleDef std_module = {
+    PyModuleDef_HEAD_INIT,
+    "std",   /* name of module */
+    NULL, /* module documentation, may be NULL */
+    -1,       /* size of per-interpreter state of the module,
+                 or -1 if the module keeps state in global variables. */
+    std_methods
+};
+
+PyMODINIT_FUNC
+PyInit_std(void)
 {
-	PyImport_AddModule("std");
-	Py_InitModule("std", std_methods);
+    return PyModule_Create(&std_module);
 }
 
-int main(int argc, char **argv)
+
+int main(int argc, char *argv[])
 {
-	Py_SetProgramName(argv[0]);
-
-	Py_Initialize();
-
-	initstd();
-
-	Py_Exit(0);
+    wchar_t *program = Py_DecodeLocale(argv[0], NULL);
+    if (program == NULL) {
+        fprintf(stderr, "Fatal error: cannot decode argv[0]\n");
+        exit(1);
+    }
+    PyImport_AppendInittab("std", PyInit_std);
+    Py_SetProgramName(program);
+    Py_Initialize();
+    PyImport_ImportModule("std");
+    PyMem_RawFree(program);
+    return 0;
 }
+
+
